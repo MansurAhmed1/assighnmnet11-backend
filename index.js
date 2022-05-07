@@ -48,7 +48,7 @@ async function run() {
 
     //for bookreqest collection
     const requestCollection = client
-      .db("Genius-car-service")
+      .db("BookHouseSimple")
       .collection("request");
 
     //for auth and jwt for login
