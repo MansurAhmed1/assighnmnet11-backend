@@ -14,7 +14,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
 function varifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
@@ -29,12 +28,7 @@ function varifyJWT(req, res, next) {
     req.decoded = decoded;
     next();
   });
-
- 
 }
-
-
-
 
 var uri = `mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0-shard-00-00.v85be.mongodb.net:27017,cluster0-shard-00-01.v85be.mongodb.net:27017,cluster0-shard-00-02.v85be.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-e24feo-shard-0&authSource=admin&retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
@@ -52,74 +46,55 @@ async function run() {
       //collection name bosate hobe
       .collection("books");
 
-  //for auth and jwt for login 
-  app.post("/login", async (req, res) => {
-    const user = req.body;
-    //emailke object er moto die dite hobe
-    console.log(user)
-    const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-      expiresIn: "1d"
+    //for bookreqest collection
+    const requestCollection = client
+      .db("Genius-car-service")
+      .collection("request");
+
+    //for auth and jwt for login
+    app.post("/login", async (req, res) => {
+      const user = req.body;
+      //emailke object er moto die dite hobe
+      console.log(user);
+      const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: "1d"
+      });
+      res.send({ accessToken });
+      console.log(accessToken);
     });
-    res.send({ accessToken });
-    console.log(accessToken)
-  });
 
+    //backend er datake ui te pathanor jonno nicher re.send app.get er moddho
+    app.get("/book", async (req, res) => {
+      console.log("query", req.query);
+      const page = parseFloat(req.query.page);
+      const size = parseFloat(req.query.size);
 
+      const query = {};
+      const cursor = productCollection.find(query);
 
+      //.limit(er vetore joto songkha likhbothik totota dekhabe) const products = await cursor.limit(10)toArray();
+      //prottok page  aalada alada data set korar jonno main data gulo
+      let products;
+      if (page || size) {
+        products = await cursor
+          .skip(page * size)
+          .limit(size)
+          .toArray();
+      } else {
+        products = await cursor.toArray();
+      }
+      res.send(products);
+    });
 
-
-
-    // // backend er datake ui te pathanor jonno nicher re.send app.get er moddho
-    // app.get("/book", async (req, res) => {
-    //   const query = {};
-    //   const cursor = productCollection.find(query);
-    //   const products = await cursor.toArray();
-    //   res.send(products);
-    // });
-
-
-
-
-
-
-
-  //backend er datake ui te pathanor jonno nicher re.send app.get er moddho
-  app.get("/book", async (req, res) => {
-    console.log("query", req.query);
-    const page = parseFloat(req.query.page);
-    const size = parseFloat(req.query.size);
-
-    const query = {};
-    const cursor =  productCollection.find(query);
-   
-    //.limit(er vetore joto songkha likhbothik totota dekhabe) const products = await cursor.limit(10)toArray();
-    //prottok page  aalada alada data set korar jonno main data gulo
-    let products;
-    if (page || size) {
-      products = await cursor
-        .skip(page * size)
-        .limit(size)
-        .toArray();
-    } else {
-      products = await cursor.toArray();
-    }
-    res.send(products);
- 
-  });
-
-  //product count korar jonno api te  koita product ache ta dekhar jonno
-  app.get("/productCount", async (req, res) => {
-    // const query = {};
-    // const cursor = productCollection.find(query);
-    //.limit(er vetore joto songkha likhbothik totota dekhabe) const products = await cursor.limit(10)toArray();
-    const count = await productCollection.estimatedDocumentCount();
-   console.log(count)
-    res.send({ count });
-  });
-
-
-
-
+    //product count korar jonno api te  koita product ache ta dekhar jonno
+    app.get("/productCount", async (req, res) => {
+      // const query = {};
+      // const cursor = productCollection.find(query);
+      //.limit(er vetore joto songkha likhbothik totota dekhabe) const products = await cursor.limit(10)toArray();
+      const count = await productCollection.estimatedDocumentCount();
+      console.log(count);
+      res.send({ count });
+    });
 
     //id dara query toiri kora
     app.get("/book/:id", async (req, res) => {
@@ -176,18 +151,17 @@ async function run() {
       res.send(result);
     });
 
-  //search query
-   
+    //search query
 
     app.get("/books", varifyJWT, async (req, res) => {
       const email = req.query.email;
       console.log(email);
       const decodedEmail = req.decoded.email;
       if (email === decodedEmail) {
-      const query = { email: email };
-      const cursor = productCollection.find(query);
-      const products = await cursor.toArray();
-      res.send(products);
+        const query = { email: email };
+        const cursor = productCollection.find(query);
+        const products = await cursor.toArray();
+        res.send(products);
       } else {
         res.status(403).send({ message: "forbidden access" });
       }
@@ -210,10 +184,19 @@ async function run() {
       res.send(result);
     });
 
-  
-
-
-
+    //client side the post kora
+    app.post("/request", async (req, res) => {
+      const order = req.body;
+      const request = await requestCollection.insertOne(order);
+      res.send(request);
+    });
+    //server theke client a newa
+    app.get("/request", async (req, res) => {
+      const query = {};
+      const cursor = requestCollection.find(query);
+      const request = await cursor.toArray();
+      res.send(request);
+    });
   } finally {
   }
 }
