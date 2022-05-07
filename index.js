@@ -46,7 +46,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    const serviceCollection = client
+    const productCollection = client
       //database name bosate hobe
       .db("BookHouseSimple")
       //collection name bosate hobe
@@ -69,21 +69,65 @@ async function run() {
 
 
 
-    //backend er datake ui te pathanor jonno nicher re.send app.get er moddho
-    app.get("/book", async (req, res) => {
-      const query = {};
-      const cursor = serviceCollection.find(query);
-      const services = await cursor.toArray();
-      res.send(services);
-    });
+    // // backend er datake ui te pathanor jonno nicher re.send app.get er moddho
+    // app.get("/book", async (req, res) => {
+    //   const query = {};
+    //   const cursor = productCollection.find(query);
+    //   const products = await cursor.toArray();
+    //   res.send(products);
+    // });
+
+
+
+
+
+
+
+  //backend er datake ui te pathanor jonno nicher re.send app.get er moddho
+  app.get("/book", async (req, res) => {
+    console.log("query", req.query);
+    const page = parseFloat(req.query.page);
+    const size = parseFloat(req.query.size);
+
+    const query = {};
+    const cursor =  productCollection.find(query);
+   
+    //.limit(er vetore joto songkha likhbothik totota dekhabe) const products = await cursor.limit(10)toArray();
+    //prottok page  aalada alada data set korar jonno main data gulo
+    let products;
+    if (page || size) {
+      products = await cursor
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+    } else {
+      products = await cursor.toArray();
+    }
+    res.send(products);
+ 
+  });
+
+  //product count korar jonno api te  koita product ache ta dekhar jonno
+  app.get("/productCount", async (req, res) => {
+    // const query = {};
+    // const cursor = productCollection.find(query);
+    //.limit(er vetore joto songkha likhbothik totota dekhabe) const products = await cursor.limit(10)toArray();
+    const count = await productCollection.estimatedDocumentCount();
+   console.log(count)
+    res.send({ count });
+  });
+
+
+
+
 
     //id dara query toiri kora
     app.get("/book/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
       const query = { _id: ObjectId(id) };
-      const service = await serviceCollection.findOne(query);
-      res.send(service);
+      const product = await productCollection.findOne(query);
+      res.send(product);
     });
 
     //update 1
@@ -101,7 +145,7 @@ async function run() {
           quantity: updateUser.quantity
         }
       };
-      const result = await serviceCollection.updateOne(
+      const result = await productCollection.updateOne(
         filter,
         updatedDoc,
         options
@@ -124,7 +168,7 @@ async function run() {
           quantity: updateUser.quantity
         }
       };
-      const result = await serviceCollection.updateOne(
+      const result = await productCollection.updateOne(
         filter,
         updatedDoc,
         options
@@ -132,25 +176,8 @@ async function run() {
       res.send(result);
     });
 
-    // //search query
-    // app.get("/order", varifyJWT, async (req, res) => {
-    //   // const authHeader=req.headers.authorization;
-    //   // console.log( authHeader)
-    //   const decodedEmail = req.decoded.email;
-    //   const email = req.query.email;
-    //   if (email === decodedEmail) {
-    //     const query = { email: email };
-    //     const cursor = orderCollection.find(query);
-    //     const order = await cursor.toArray();
-    //     res.send(order);
-    //   } else {
-    //     res.status(403).send({ message: "forbidden access" });
-    //   }
-    // });
-
-
-
-/////////////////////////////
+  //search query
+   
 
     app.get("/books", varifyJWT, async (req, res) => {
       const email = req.query.email;
@@ -158,9 +185,9 @@ async function run() {
       const decodedEmail = req.decoded.email;
       if (email === decodedEmail) {
       const query = { email: email };
-      const cursor = serviceCollection.find(query);
-      const services = await cursor.toArray();
-      res.send(services);
+      const cursor = productCollection.find(query);
+      const products = await cursor.toArray();
+      res.send(products);
       } else {
         res.status(403).send({ message: "forbidden access" });
       }
@@ -169,9 +196,9 @@ async function run() {
     //post kora ba add kora
 
     app.post("/book", async (req, res) => {
-      const newService = req.body;
+      const newproduct = req.body;
       console.log(req.body);
-      const result = await serviceCollection.insertOne(newService);
+      const result = await productCollection.insertOne(newproduct);
       res.send(result);
     });
 
@@ -179,7 +206,7 @@ async function run() {
     app.delete("/book/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const result = await serviceCollection.deleteOne(query);
+      const result = await productCollection.deleteOne(query);
       res.send(result);
     });
 
